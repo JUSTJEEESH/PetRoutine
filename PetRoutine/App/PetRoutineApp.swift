@@ -22,7 +22,7 @@ struct PetRoutineApp: App {
                 .environmentObject(storeKit)
                 .environment(\.managedObjectContext, persistence.container.viewContext)
                 .task {
-                    await NotificationService.shared.requestAuthorization()
+                    _ = await NotificationService.shared.requestAuthorization()
                 }
         }
     }

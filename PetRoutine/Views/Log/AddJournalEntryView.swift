@@ -69,13 +69,11 @@ struct AddJournalEntryView: View {
             }
             .onChange(of: selectedItem) { _, newValue in
                 guard let item = newValue else { return }
-                Task {
+                Task { @MainActor in
                     if let data = try? await item.loadTransferable(type: Data.self) {
-                        await MainActor.run {
-                            if let image = UIImage(data: data) {
-                                let resized = image.preparingThumbnail(of: CGSize(width: 800, height: 800))
-                                photoData = resized?.jpegData(compressionQuality: 0.8) ?? data
-                            }
+                        if let image = UIImage(data: data) {
+                            let resized = image.preparingThumbnail(of: CGSize(width: 800, height: 800))
+                            photoData = resized?.jpegData(compressionQuality: 0.8) ?? data
                         }
                     }
                 }

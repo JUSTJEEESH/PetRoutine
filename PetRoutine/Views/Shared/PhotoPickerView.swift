@@ -22,8 +22,9 @@ struct PhotoPickerView: View {
                     .clipShape(Circle())
             }
 
+            let hasImage = imageData != nil
             PhotosPicker(selection: $selectedItem, matching: .images) {
-                Text(imageData == nil ? "Add Photo" : "Change Photo")
+                Text(hasImage ? "Change Photo" : "Add Photo")
                     .font(.subheadline)
             }
 
