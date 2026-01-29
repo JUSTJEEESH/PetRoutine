@@ -37,13 +37,11 @@ struct PhotoPickerView: View {
         }
         .onChange(of: selectedItem) { _, newValue in
             guard let item = newValue else { return }
-            Task {
+            Task { @MainActor in
                 if let data = try? await item.loadTransferable(type: Data.self) {
-                    await MainActor.run {
-                        if let image = UIImage(data: data) {
-                            let resized = image.preparingThumbnail(of: CGSize(width: 400, height: 400))
-                            imageData = resized?.jpegData(compressionQuality: 0.8) ?? data
-                        }
+                    if let image = UIImage(data: data) {
+                        let resized = image.preparingThumbnail(of: CGSize(width: 400, height: 400))
+                        imageData = resized?.jpegData(compressionQuality: 0.8) ?? data
                     }
                 }
             }
