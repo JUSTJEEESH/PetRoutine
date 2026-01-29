@@ -75,11 +75,11 @@ final class StoreKitService: ObservableObject {
     }
 
     private func listenForTransactions() -> Task<Void, Never> {
-        Task.detached { [weak self] in
+        Task { [weak self] in
             for await result in Transaction.updates {
                 if let transaction = try? self?.checkVerified(result),
-                   transaction.productID == StoreKitService.proProductID {
-                    await self?.unlockPro()
+                   transaction.productID == Self.proProductID {
+                    self?.unlockPro()
                     await transaction.finish()
                 }
             }
