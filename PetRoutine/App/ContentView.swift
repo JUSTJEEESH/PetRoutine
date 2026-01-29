@@ -12,17 +12,23 @@ struct ContentView: View {
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            Tab("Today", systemImage: "checkmark.circle.fill", value: .today) {
-                TodayView()
-            }
+            TodayView()
+                .tag(AppTab.today)
+                .tabItem {
+                    Label("Today", systemImage: "checkmark.circle.fill")
+                }
 
-            Tab("Pets", systemImage: "pawprint.fill", value: .pets) {
-                PetsListView()
-            }
+            PetsListView()
+                .tag(AppTab.pets)
+                .tabItem {
+                    Label("Pets", systemImage: "pawprint.fill")
+                }
 
-            Tab("Log", systemImage: "book.fill", value: .log) {
-                LogView()
-            }
+            LogView()
+                .tag(AppTab.log)
+                .tabItem {
+                    Label("Log", systemImage: "book.fill")
+                }
         }
         .tint(.accentColor)
         .onAppear {
