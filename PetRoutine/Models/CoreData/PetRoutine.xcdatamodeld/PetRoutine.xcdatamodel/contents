@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="23231" systemVersion="24A335" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithCloudKit="YES" userDefinedModelVersionIdentifier="">
+    <entity name="CDPet" representedClassName="CDPet" syncable="YES" codeGenerationType="class">
+        <attribute name="ageCategory" attributeType="String" defaultValueString="adult"/>
+        <attribute name="createdAt" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="name" attributeType="String" defaultValueString=""/>
+        <attribute name="petType" attributeType="String" defaultValueString="dog"/>
+        <attribute name="photoData" optional="YES" attributeType="Binary" allowsExternalBinaryDataStorage="YES"/>
+        <attribute name="sortOrder" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <relationship name="careTasks" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="CDCareTask" inverseName="pet" inverseEntity="CDCareTask"/>
+        <relationship name="journalEntries" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="CDJournalEntry" inverseName="pet" inverseEntity="CDJournalEntry"/>
+        <relationship name="vetInfo" optional="YES" maxCount="1" deletionRule="Cascade" destinationEntity="CDVetInfo" inverseName="pet" inverseEntity="CDVetInfo"/>
+    </entity>
+    <entity name="CDCareTask" representedClassName="CDCareTask" syncable="YES" codeGenerationType="class">
+        <attribute name="createdAt" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="frequencyType" attributeType="String" defaultValueString="daily"/>
+        <attribute name="frequencyValue" optional="YES" attributeType="String"/>
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="isEnabled" attributeType="Boolean" defaultValueString="YES" usesScalarValueType="YES"/>
+        <attribute name="name" attributeType="String" defaultValueString=""/>
+        <attribute name="notes" optional="YES" attributeType="String"/>
+        <attribute name="notifyEnabled" attributeType="Boolean" defaultValueString="YES" usesScalarValueType="YES"/>
+        <attribute name="scheduledTimes" optional="YES" attributeType="Transformable" valueTransformerName="NSSecureUnarchiveFromDataTransformerName"/>
+        <attribute name="taskType" attributeType="String" defaultValueString="custom"/>
+        <relationship name="completions" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="CDTaskCompletion" inverseName="careTask" inverseEntity="CDTaskCompletion"/>
+        <relationship name="pet" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="CDPet" inverseName="careTasks" inverseEntity="CDPet"/>
+        <relationship name="routine" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="CDRoutine" inverseName="tasks" inverseEntity="CDRoutine"/>
+    </entity>
+    <entity name="CDTaskCompletion" representedClassName="CDTaskCompletion" syncable="YES" codeGenerationType="class">
+        <attribute name="caregiverName" attributeType="String" defaultValueString="Me"/>
+        <attribute name="completedAt" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="notes" optional="YES" attributeType="String"/>
+        <relationship name="careTask" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="CDCareTask" inverseName="completions" inverseEntity="CDCareTask"/>
+    </entity>
+    <entity name="CDRoutine" representedClassName="CDRoutine" syncable="YES" codeGenerationType="class">
+        <attribute name="createdAt" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="isEnabled" attributeType="Boolean" defaultValueString="YES" usesScalarValueType="YES"/>
+        <attribute name="name" attributeType="String" defaultValueString=""/>
+        <attribute name="notes" optional="YES" attributeType="String"/>
+        <relationship name="tasks" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="CDCareTask" inverseName="routine" inverseEntity="CDCareTask"/>
+    </entity>
+    <entity name="CDJournalEntry" representedClassName="CDJournalEntry" syncable="YES" codeGenerationType="class">
+        <attribute name="createdAt" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="photoData" optional="YES" attributeType="Binary" allowsExternalBinaryDataStorage="YES"/>
+        <attribute name="text" attributeType="String" defaultValueString=""/>
+        <relationship name="pet" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="CDPet" inverseName="journalEntries" inverseEntity="CDPet"/>
+    </entity>
+    <entity name="CDVetInfo" representedClassName="CDVetInfo" syncable="YES" codeGenerationType="class">
+        <attribute name="address" optional="YES" attributeType="String"/>
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="name" optional="YES" attributeType="String"/>
+        <attribute name="notes" optional="YES" attributeType="String"/>
+        <attribute name="phone" optional="YES" attributeType="String"/>
+        <relationship name="pet" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="CDPet" inverseName="vetInfo" inverseEntity="CDPet"/>
+    </entity>
+    <entity name="CDHousehold" representedClassName="CDHousehold" syncable="YES" codeGenerationType="class">
+        <attribute name="createdAt" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="name" attributeType="String" defaultValueString="My Household"/>
+        <relationship name="caregivers" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="CDCaregiver" inverseName="household" inverseEntity="CDCaregiver"/>
+    </entity>
+    <entity name="CDCaregiver" representedClassName="CDCaregiver" syncable="YES" codeGenerationType="class">
+        <attribute name="createdAt" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="expiresAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="isTemporary" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="name" attributeType="String" defaultValueString=""/>
+        <attribute name="role" attributeType="String" defaultValueString="caregiver"/>
+        <relationship name="household" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="CDHousehold" inverseName="caregivers" inverseEntity="CDHousehold"/>
+    </entity>
+</model>
