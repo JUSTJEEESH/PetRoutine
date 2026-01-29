@@ -82,7 +82,7 @@ struct PetRoutineWidgetEntryView: View {
             HStack {
                 Image(systemName: "pawprint.fill")
                     .font(.caption)
-                    .foregroundStyle(.accent)
+                    .foregroundStyle(.blue)
                 Text(entry.petName)
                     .font(.caption)
                     .fontWeight(.semibold)
@@ -132,7 +132,7 @@ struct PetRoutineWidgetEntryView: View {
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
                     Image(systemName: "pawprint.fill")
-                        .foregroundStyle(.accent)
+                        .foregroundStyle(.blue)
                     Text(entry.petName)
                         .fontWeight(.semibold)
                 }
