@@ -14,7 +14,11 @@ final class StoreKitService: ObservableObject {
     private var transactionListener: Task<Void, Never>?
 
     init() {
+        #if DEBUG
+        proUnlocked = true
+        #else
         proUnlocked = UserDefaults.standard.bool(forKey: "proUnlocked")
+        #endif
         transactionListener = listenForTransactions()
         Task { await loadProducts() }
     }
