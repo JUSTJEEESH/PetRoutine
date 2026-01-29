@@ -53,10 +53,13 @@ final class PersistenceController: @unchecked Sendable {
         return controller
     }()
 
-    let container: NSPersistentCloudKitContainer
+    let container: NSPersistentContainer
 
     init(inMemory: Bool = false) {
-        container = NSPersistentCloudKitContainer(name: "PetRoutine")
+        // Uses NSPersistentContainer for local-only storage.
+        // Switch to NSPersistentCloudKitContainer and re-add iCloud
+        // entitlements once enrolled in the Apple Developer Program.
+        container = NSPersistentContainer(name: "PetRoutine")
 
         if inMemory {
             container.persistentStoreDescriptions.first?.url = URL(fileURLWithPath: "/dev/null")
@@ -65,11 +68,6 @@ final class PersistenceController: @unchecked Sendable {
         let description = container.persistentStoreDescriptions.first
         description?.setOption(true as NSNumber, forKey: NSPersistentHistoryTrackingKey)
         description?.setOption(true as NSNumber, forKey: NSPersistentStoreRemoteChangeNotificationPostOptionKey)
-
-        let iCloudEnabled = UserDefaults.standard.bool(forKey: "iCloudSyncEnabled")
-        if !iCloudEnabled {
-            description?.cloudKitContainerOptions = nil
-        }
 
         container.loadPersistentStores { _, error in
             if let error {
