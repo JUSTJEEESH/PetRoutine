@@ -19,7 +19,7 @@ extension CDCareTask {
     func toCareTask() -> CareTask {
         let petIDArray: [UUID] = (pets as? Set<CDPet>)?.compactMap { $0.id }.sorted(by: { $0.uuidString < $1.uuidString }) ?? []
         let notesDict = (petNotes as? [String: String]) ?? [:]
-        CareTask(
+        return CareTask(
             id: id ?? UUID(),
             name: name ?? "",
             taskType: TaskType(rawValue: taskType ?? "custom") ?? .custom,
@@ -106,7 +106,7 @@ extension CDCaregiver {
 extension CDHousehold {
     func toHousehold() -> Household {
         let caregiversArray = (caregivers as? Set<CDCaregiver>)?.map { $0.toCaregiver() }.sorted(by: { $0.createdAt < $1.createdAt }) ?? []
-        Household(
+        return Household(
             id: id ?? UUID(),
             name: name ?? "My Household",
             caregivers: caregiversArray,
