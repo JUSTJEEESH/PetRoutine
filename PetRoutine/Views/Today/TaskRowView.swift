@@ -48,7 +48,7 @@ struct TaskRowView: View {
     private var taskIcon: some View {
         Image(systemName: task.taskType.icon)
             .font(.body)
-            .foregroundStyle(allDone ? .secondary : .accentColor)
+            .foregroundStyle(allDone ? .secondary : Color.accentColor)
             .frame(width: 32, height: 32)
             .background(
                 RoundedRectangle(cornerRadius: 8)
@@ -159,7 +159,7 @@ struct TaskRowView: View {
             Text("All")
                 .font(.caption2)
                 .fontWeight(.semibold)
-                .foregroundStyle(allDone ? .secondary : .accentColor)
+                .foregroundStyle(allDone ? .secondary : Color.accentColor)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
                 .background(

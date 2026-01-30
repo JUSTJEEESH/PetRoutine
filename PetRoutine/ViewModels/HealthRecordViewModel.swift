@@ -64,7 +64,7 @@ final class HealthRecordViewModel: ObservableObject {
 
         persistence.save()
 
-        if record.reminderEnabled, let dueDate = record.nextDueDate {
+        if record.reminderEnabled, record.nextDueDate != nil {
             NotificationService.shared.scheduleHealthReminder(for: record)
         }
 
@@ -87,7 +87,7 @@ final class HealthRecordViewModel: ObservableObject {
         persistence.save()
 
         NotificationService.shared.removeHealthReminder(for: record.id)
-        if record.reminderEnabled, let _ = record.nextDueDate {
+        if record.reminderEnabled, record.nextDueDate != nil {
             NotificationService.shared.scheduleHealthReminder(for: record)
         }
 

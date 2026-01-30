@@ -58,7 +58,7 @@ struct PetDetailView: View {
             HealthPassportView(pet: pet)
         }
         .sheet(isPresented: $showingJournalEntry) {
-            AddJournalEntryView()
+            AddJournalEntryView(petID: pet.id)
         }
         .sheet(isPresented: $showingVetInfo) {
             VetInfoView(petID: pet.id)
@@ -67,7 +67,7 @@ struct PetDetailView: View {
             ExportView(pet: pet)
         }
         .sheet(isPresented: $showingTimeline) {
-            TimelineView(petID: pet.id, petName: pet.name)
+            PetTimelineView(petID: pet.id, petName: pet.name)
         }
         .sheet(item: $selectedRecord) { record in
             AddHealthRecordView(petID: pet.id, existingRecord: record)
