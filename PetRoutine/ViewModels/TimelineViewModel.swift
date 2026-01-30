@@ -17,7 +17,7 @@ final class TimelineViewModel: ObservableObject {
 
         // Task completions
         let completionRequest = CDTaskCompletion.fetchRequest()
-        completionRequest.predicate = NSPredicate(format: "careTask.pet.id == %@", petID as CVarArg)
+        completionRequest.predicate = NSPredicate(format: "pet.id == %@", petID as CVarArg)
         completionRequest.sortDescriptors = [NSSortDescriptor(keyPath: \CDTaskCompletion.completedAt, ascending: false)]
 
         if let completions = try? context.fetch(completionRequest) {
@@ -50,6 +50,25 @@ final class TimelineViewModel: ObservableObject {
                     eventType: .journalEntry(
                         text: entry.text ?? "",
                         hasPhoto: entry.photoData != nil
+                    )
+                ))
+            }
+        }
+
+        // Health records
+        let healthRequest = CDHealthRecord.fetchRequest()
+        healthRequest.predicate = NSPredicate(format: "pet.id == %@", petID as CVarArg)
+        healthRequest.sortDescriptors = [NSSortDescriptor(keyPath: \CDHealthRecord.dateAdministered, ascending: false)]
+
+        if let healthRecords = try? context.fetch(healthRequest) {
+            for record in healthRecords {
+                allEvents.append(TimelineEvent(
+                    id: record.id ?? UUID(),
+                    petID: petID,
+                    date: record.dateAdministered ?? Date(),
+                    eventType: .healthRecord(
+                        name: record.name ?? "",
+                        recordType: HealthRecordType(rawValue: record.recordType ?? "vaccination") ?? .vaccination
                     )
                 ))
             }

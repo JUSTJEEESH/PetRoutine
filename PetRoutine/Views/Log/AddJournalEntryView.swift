@@ -2,28 +2,17 @@ import SwiftUI
 import PhotosUI
 
 struct AddJournalEntryView: View {
-    @EnvironmentObject var petVM: PetViewModel
+    let petID: UUID
     @EnvironmentObject var journalVM: JournalViewModel
     @Environment(\.dismiss) private var dismiss
 
     @State private var text = ""
     @State private var photoData: Data?
     @State private var selectedItem: PhotosPickerItem?
-    @State private var selectedPetID: UUID?
 
     var body: some View {
         NavigationStack {
             Form {
-                if petVM.pets.count > 1 {
-                    Section("Pet") {
-                        Picker("Pet", selection: $selectedPetID) {
-                            ForEach(petVM.pets) { pet in
-                                Text(pet.name).tag(Optional(pet.id))
-                            }
-                        }
-                    }
-                }
-
                 Section("Note") {
                     TextField("What happened?", text: $text, axis: .vertical)
                         .lineLimit(3...8)
@@ -36,22 +25,21 @@ struct AddJournalEntryView: View {
                             .scaledToFit()
                             .frame(maxHeight: 200)
                             .clipShape(RoundedRectangle(cornerRadius: 8))
-
-                        Button("Remove Photo", role: .destructive) {
-                            self.photoData = nil
-                            selectedItem = nil
-                        }
                     }
 
                     PhotosPicker(selection: $selectedItem, matching: .images) {
-                        Label(
-                            photoData == nil ? "Add Photo" : "Change Photo",
-                            systemImage: "photo.on.rectangle.angled"
-                        )
+                        Label(photoData == nil ? "Add Photo" : "Change Photo", systemImage: "photo")
+                    }
+
+                    if photoData != nil {
+                        Button("Remove Photo", role: .destructive) {
+                            photoData = nil
+                            selectedItem = nil
+                        }
                     }
                 }
             }
-            .navigationTitle("New Entry")
+            .navigationTitle("New Log Entry")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -59,13 +47,16 @@ struct AddJournalEntryView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
-                        saveEntry()
+                        let entry = JournalEntry(
+                            petID: petID,
+                            text: text.trimmingCharacters(in: .whitespaces),
+                            photoData: photoData
+                        )
+                        journalVM.addEntry(entry)
+                        dismiss()
                     }
                     .disabled(text.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
-            }
-            .onAppear {
-                selectedPetID = petVM.selectedPet?.id
             }
             .onChange(of: selectedItem) { _, newValue in
                 guard let item = newValue else { return }
@@ -79,15 +70,5 @@ struct AddJournalEntryView: View {
                 }
             }
         }
-    }
-
-    private func saveEntry() {
-        let entry = JournalEntry(
-            petID: selectedPetID,
-            text: text.trimmingCharacters(in: .whitespaces),
-            photoData: photoData
-        )
-        journalVM.addEntry(entry)
-        dismiss()
     }
 }

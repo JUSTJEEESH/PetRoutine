@@ -15,14 +15,16 @@ final class NotificationService: @unchecked Sendable {
         }
     }
 
-    func scheduleTaskNotification(for task: CareTask, petName: String) {
+    // MARK: - Task Notifications
+
+    func scheduleTaskNotifications(for task: CareTask) {
         guard task.notifyEnabled, task.isEnabled else { return }
 
         removeNotifications(for: task.id)
 
         for (index, time) in task.scheduledTimes.enumerated() {
             let content = UNMutableNotificationContent()
-            content.title = "\(petName) — \(task.name)"
+            content.title = task.name
             content.body = task.notes ?? taskBody(for: task.taskType)
             content.sound = .default
             content.categoryIdentifier = "CARE_TASK"
@@ -66,6 +68,69 @@ final class NotificationService: @unchecked Sendable {
             self.center.removePendingNotificationRequests(withIdentifiers: matching)
         }
     }
+
+    // MARK: - Health Record Reminders
+
+    func scheduleHealthReminder(for record: HealthRecord) {
+        guard record.reminderEnabled, let dueDate = record.nextDueDate else { return }
+
+        removeHealthReminder(for: record.id)
+
+        let twoWeeksBefore = Calendar.current.date(byAdding: .day, value: -14, to: dueDate) ?? dueDate
+        scheduleHealthNotification(
+            id: "\(record.id.uuidString)-2w",
+            title: "Upcoming: \(record.name)",
+            body: "Due in 2 weeks (\(dueDate.shortDateString))",
+            date: twoWeeksBefore
+        )
+
+        let dayBefore = Calendar.current.date(byAdding: .day, value: -1, to: dueDate) ?? dueDate
+        scheduleHealthNotification(
+            id: "\(record.id.uuidString)-1d",
+            title: "\(record.name) due tomorrow",
+            body: "Scheduled for \(dueDate.shortDateString)",
+            date: dayBefore
+        )
+
+        scheduleHealthNotification(
+            id: "\(record.id.uuidString)-due",
+            title: "\(record.name) is due today",
+            body: "Don't forget to schedule this.",
+            date: dueDate
+        )
+    }
+
+    func removeHealthReminder(for recordID: UUID) {
+        let prefix = recordID.uuidString
+        center.getPendingNotificationRequests { requests in
+            let matching = requests
+                .filter { $0.identifier.hasPrefix(prefix) }
+                .map(\.identifier)
+            self.center.removePendingNotificationRequests(withIdentifiers: matching)
+        }
+    }
+
+    private func scheduleHealthNotification(id: String, title: String, body: String, date: Date) {
+        guard date > Date() else { return }
+
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = body
+        content.sound = .default
+        content.categoryIdentifier = "HEALTH_RECORD"
+
+        let components = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: date)
+        let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+        let request = UNNotificationRequest(identifier: id, content: content, trigger: trigger)
+
+        center.add(request) { error in
+            if let error {
+                print("Failed to schedule health notification: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    // MARK: - Utilities
 
     func removeAllNotifications() {
         center.removeAllPendingNotificationRequests()

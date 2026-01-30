@@ -7,8 +7,8 @@ struct PetRoutineApp: App {
     @StateObject private var petVM = PetViewModel()
     @StateObject private var taskVM = TaskViewModel()
     @StateObject private var journalVM = JournalViewModel()
-    @StateObject private var routineVM = RoutineViewModel()
     @StateObject private var householdVM = HouseholdViewModel()
+    @StateObject private var healthRecordVM = HealthRecordViewModel()
     @StateObject private var storeKit = StoreKitService.shared
 
     var body: some Scene {
@@ -17,8 +17,8 @@ struct PetRoutineApp: App {
                 .environmentObject(petVM)
                 .environmentObject(taskVM)
                 .environmentObject(journalVM)
-                .environmentObject(routineVM)
                 .environmentObject(householdVM)
+                .environmentObject(healthRecordVM)
                 .environmentObject(storeKit)
                 .environment(\.managedObjectContext, persistence.container.viewContext)
                 .task {

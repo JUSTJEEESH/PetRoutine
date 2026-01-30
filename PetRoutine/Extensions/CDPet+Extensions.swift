@@ -8,63 +8,31 @@ extension CDPet {
             petType: PetType(rawValue: petType ?? "dog") ?? .dog,
             ageCategory: AgeCategory(rawValue: ageCategory ?? "adult") ?? .adult,
             photoData: photoData,
+            birthday: birthday,
             sortOrder: sortOrder,
             createdAt: createdAt ?? Date()
         )
-    }
-
-    func update(from pet: Pet) {
-        id = pet.id
-        name = pet.name
-        petType = pet.petType.rawValue
-        ageCategory = pet.ageCategory.rawValue
-        photoData = pet.photoData
-        sortOrder = pet.sortOrder
-        createdAt = pet.createdAt
     }
 }
 
 extension CDCareTask {
     func toCareTask() -> CareTask {
+        let petIDArray: [UUID] = (pets as? Set<CDPet>)?.compactMap { $0.id }.sorted(by: { $0.uuidString < $1.uuidString }) ?? []
+        let notesDict = (petNotes as? [String: String]) ?? [:]
         CareTask(
             id: id ?? UUID(),
-            petID: pet?.id,
             name: name ?? "",
             taskType: TaskType(rawValue: taskType ?? "custom") ?? .custom,
             frequencyType: FrequencyType(rawValue: frequencyType ?? "daily") ?? .daily,
             frequencyValue: frequencyValue,
             scheduledTimes: (scheduledTimes as? [Date]) ?? [],
-            notes: notes,
             isEnabled: isEnabled,
             notifyEnabled: notifyEnabled,
-            routineID: routine?.id,
+            notes: notes,
+            petIDs: petIDArray,
+            petNotes: notesDict,
             createdAt: createdAt ?? Date()
         )
-    }
-
-    func update(from task: CareTask, in context: NSManagedObjectContext) {
-        id = task.id
-        name = task.name
-        taskType = task.taskType.rawValue
-        frequencyType = task.frequencyType.rawValue
-        frequencyValue = task.frequencyValue
-        scheduledTimes = task.scheduledTimes as NSArray
-        notes = task.notes
-        isEnabled = task.isEnabled
-        notifyEnabled = task.notifyEnabled
-        createdAt = task.createdAt
-
-        if let petID = task.petID {
-            let request = CDPet.fetchRequest()
-            request.predicate = NSPredicate(format: "id == %@", petID as CVarArg)
-            pet = try? context.fetch(request).first
-        }
-
-        if let routineID = task.routineID {
-            let request = CDRoutine.fetchRequest()
-            request.predicate = NSPredicate(format: "id == %@", routineID as CVarArg)
-            routine = try? context.fetch(request).first
-        }
     }
 }
 
@@ -72,7 +40,8 @@ extension CDTaskCompletion {
     func toTaskCompletion() -> TaskCompletion {
         TaskCompletion(
             id: id ?? UUID(),
-            careTaskID: careTask?.id,
+            taskID: careTask?.id ?? UUID(),
+            petID: pet?.id ?? UUID(),
             completedAt: completedAt ?? Date(),
             caregiverName: caregiverName ?? "Me",
             notes: notes
@@ -80,23 +49,19 @@ extension CDTaskCompletion {
     }
 }
 
-extension CDRoutine {
-    func toRoutine() -> Routine {
-        Routine(
+extension CDHealthRecord {
+    func toHealthRecord() -> HealthRecord {
+        HealthRecord(
             id: id ?? UUID(),
+            petID: pet?.id ?? UUID(),
             name: name ?? "",
-            isEnabled: isEnabled,
+            recordType: HealthRecordType(rawValue: recordType ?? "vaccination") ?? .vaccination,
+            dateAdministered: dateAdministered ?? Date(),
+            nextDueDate: nextDueDate,
             notes: notes,
+            reminderEnabled: reminderEnabled,
             createdAt: createdAt ?? Date()
         )
-    }
-
-    func update(from routine: Routine) {
-        id = routine.id
-        name = routine.name
-        isEnabled = routine.isEnabled
-        notes = routine.notes
-        createdAt = routine.createdAt
     }
 }
 
@@ -104,24 +69,11 @@ extension CDJournalEntry {
     func toJournalEntry() -> JournalEntry {
         JournalEntry(
             id: id ?? UUID(),
-            petID: pet?.id,
+            petID: pet?.id ?? UUID(),
             text: text ?? "",
             photoData: photoData,
             createdAt: createdAt ?? Date()
         )
-    }
-
-    func update(from entry: JournalEntry, in context: NSManagedObjectContext) {
-        id = entry.id
-        text = entry.text
-        photoData = entry.photoData
-        createdAt = entry.createdAt
-
-        if let petID = entry.petID {
-            let request = CDPet.fetchRequest()
-            request.predicate = NSPredicate(format: "id == %@", petID as CVarArg)
-            pet = try? context.fetch(request).first
-        }
     }
 }
 
@@ -129,26 +81,12 @@ extension CDVetInfo {
     func toVetInfo() -> VetInfo {
         VetInfo(
             id: id ?? UUID(),
-            petID: pet?.id,
-            name: name ?? "",
-            phone: phone ?? "",
-            address: address ?? "",
-            notes: notes ?? ""
+            petID: pet?.id ?? UUID(),
+            name: name,
+            phone: phone,
+            address: address,
+            notes: notes
         )
-    }
-
-    func update(from info: VetInfo, in context: NSManagedObjectContext) {
-        id = info.id
-        name = info.name
-        phone = info.phone
-        address = info.address
-        notes = info.notes
-
-        if let petID = info.petID {
-            let request = CDPet.fetchRequest()
-            request.predicate = NSPredicate(format: "id == %@", petID as CVarArg)
-            pet = try? context.fetch(request).first
-        }
     }
 }
 
@@ -163,22 +101,15 @@ extension CDCaregiver {
             createdAt: createdAt ?? Date()
         )
     }
-
-    func update(from caregiver: Caregiver) {
-        id = caregiver.id
-        name = caregiver.name
-        role = caregiver.role.rawValue
-        isTemporary = caregiver.isTemporary
-        expiresAt = caregiver.expiresAt
-        createdAt = caregiver.createdAt
-    }
 }
 
 extension CDHousehold {
     func toHousehold() -> Household {
+        let caregiversArray = (caregivers as? Set<CDCaregiver>)?.map { $0.toCaregiver() }.sorted(by: { $0.createdAt < $1.createdAt }) ?? []
         Household(
             id: id ?? UUID(),
             name: name ?? "My Household",
+            caregivers: caregiversArray,
             createdAt: createdAt ?? Date()
         )
     }

@@ -8,6 +8,8 @@ struct AddPetView: View {
     @State private var petType: PetType = .dog
     @State private var ageCategory: AgeCategory = .adult
     @State private var photoData: Data?
+    @State private var hasBirthday = false
+    @State private var birthday = Date()
 
     var body: some View {
         NavigationStack {
@@ -43,6 +45,20 @@ struct AddPetView: View {
                     }
                     .pickerStyle(.segmented)
                 }
+
+                Section("Birthday") {
+                    Toggle("Set Birthday", isOn: $hasBirthday.animation())
+
+                    if hasBirthday {
+                        DatePicker(
+                            "Birthday",
+                            selection: $birthday,
+                            in: ...Date(),
+                            displayedComponents: .date
+                        )
+                        .datePickerStyle(.graphical)
+                    }
+                }
             }
             .navigationTitle("New Pet")
             .navigationBarTitleDisplayMode(.inline)
@@ -66,6 +82,7 @@ struct AddPetView: View {
             petType: petType,
             ageCategory: ageCategory,
             photoData: photoData,
+            birthday: hasBirthday ? birthday : nil,
             sortOrder: Int16(petVM.pets.count)
         )
         petVM.addPet(pet)

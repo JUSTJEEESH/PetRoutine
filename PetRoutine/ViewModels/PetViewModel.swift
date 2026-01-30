@@ -1,17 +1,20 @@
 import CoreData
 import SwiftUI
-import Combine
 
 @MainActor
 final class PetViewModel: ObservableObject {
     @Published var pets: [Pet] = []
     @Published var selectedPet: Pet?
+    @Published var showAllPets: Bool = true
 
     private let persistence: PersistenceController
 
     init(persistence: PersistenceController = .shared) {
         self.persistence = persistence
-        fetchPets()
+    }
+
+    var canAddPet: Bool {
+        StoreKitService.shared.proUnlocked || pets.count < 1
     }
 
     func fetchPets() {
@@ -19,24 +22,31 @@ final class PetViewModel: ObservableObject {
         let request = CDPet.fetchRequest()
         request.sortDescriptors = [NSSortDescriptor(keyPath: \CDPet.sortOrder, ascending: true)]
 
-        do {
-            let results = try context.fetch(request)
-            pets = results.map { $0.toPet() }
-            if selectedPet == nil || !pets.contains(where: { $0.id == selectedPet?.id }) {
-                selectedPet = pets.first
-            }
-        } catch {
-            print("Fetch pets error: \(error.localizedDescription)")
+        guard let results = try? context.fetch(request) else { return }
+        pets = results.map { $0.toPet() }
+
+        if selectedPet == nil, let first = pets.first {
+            selectedPet = first
+        }
+        if let sel = selectedPet, !pets.contains(where: { $0.id == sel.id }) {
+            selectedPet = pets.first
         }
     }
 
     func addPet(_ pet: Pet) {
         let context = persistence.container.viewContext
         let cdPet = CDPet(context: context)
-        cdPet.update(from: pet)
+        cdPet.id = pet.id
+        cdPet.name = pet.name
+        cdPet.petType = pet.petType.rawValue
+        cdPet.ageCategory = pet.ageCategory.rawValue
+        cdPet.photoData = pet.photoData
+        cdPet.birthday = pet.birthday
+        cdPet.sortOrder = pet.sortOrder
+        cdPet.createdAt = pet.createdAt
         persistence.save()
         fetchPets()
-        selectedPet = pet
+        selectedPet = pets.first(where: { $0.id == pet.id })
     }
 
     func updatePet(_ pet: Pet) {
@@ -44,15 +54,15 @@ final class PetViewModel: ObservableObject {
         let request = CDPet.fetchRequest()
         request.predicate = NSPredicate(format: "id == %@", pet.id as CVarArg)
 
-        do {
-            if let cdPet = try context.fetch(request).first {
-                cdPet.update(from: pet)
-                persistence.save()
-                fetchPets()
-            }
-        } catch {
-            print("Update pet error: \(error.localizedDescription)")
-        }
+        guard let cdPet = try? context.fetch(request).first else { return }
+        cdPet.name = pet.name
+        cdPet.petType = pet.petType.rawValue
+        cdPet.ageCategory = pet.ageCategory.rawValue
+        cdPet.photoData = pet.photoData
+        cdPet.birthday = pet.birthday
+        cdPet.sortOrder = pet.sortOrder
+        persistence.save()
+        fetchPets()
     }
 
     func deletePet(_ pet: Pet) {
@@ -60,19 +70,13 @@ final class PetViewModel: ObservableObject {
         let request = CDPet.fetchRequest()
         request.predicate = NSPredicate(format: "id == %@", pet.id as CVarArg)
 
-        do {
-            if let cdPet = try context.fetch(request).first {
-                context.delete(cdPet)
-                persistence.save()
-                fetchPets()
-            }
-        } catch {
-            print("Delete pet error: \(error.localizedDescription)")
-        }
+        guard let cdPet = try? context.fetch(request).first else { return }
+        context.delete(cdPet)
+        persistence.save()
+        fetchPets()
     }
 
-    var canAddPet: Bool {
-        let storeKit = StoreKitService.shared
-        return pets.count < 1 || storeKit.proUnlocked
+    func petFor(id: UUID) -> Pet? {
+        pets.first(where: { $0.id == id })
     }
 }

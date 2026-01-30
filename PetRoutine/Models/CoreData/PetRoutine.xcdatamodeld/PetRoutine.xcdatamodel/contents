@@ -2,14 +2,17 @@
 <model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="23231" systemVersion="24A335" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
     <entity name="CDPet" representedClassName="CDPet" syncable="YES" codeGenerationType="class">
         <attribute name="ageCategory" attributeType="String" defaultValueString="adult"/>
+        <attribute name="birthday" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="createdAt" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="name" attributeType="String" defaultValueString=""/>
         <attribute name="petType" attributeType="String" defaultValueString="dog"/>
         <attribute name="photoData" optional="YES" attributeType="Binary" allowsExternalBinaryDataStorage="YES"/>
         <attribute name="sortOrder" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
-        <relationship name="careTasks" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="CDCareTask" inverseName="pet" inverseEntity="CDCareTask"/>
+        <relationship name="careTasks" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="CDCareTask" inverseName="pets" inverseEntity="CDCareTask"/>
+        <relationship name="healthRecords" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="CDHealthRecord" inverseName="pet" inverseEntity="CDHealthRecord"/>
         <relationship name="journalEntries" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="CDJournalEntry" inverseName="pet" inverseEntity="CDJournalEntry"/>
+        <relationship name="taskCompletions" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="CDTaskCompletion" inverseName="pet" inverseEntity="CDTaskCompletion"/>
         <relationship name="vetInfo" optional="YES" maxCount="1" deletionRule="Cascade" destinationEntity="CDVetInfo" inverseName="pet" inverseEntity="CDVetInfo"/>
     </entity>
     <entity name="CDCareTask" representedClassName="CDCareTask" syncable="YES" codeGenerationType="class">
@@ -21,11 +24,11 @@
         <attribute name="name" attributeType="String" defaultValueString=""/>
         <attribute name="notes" optional="YES" attributeType="String"/>
         <attribute name="notifyEnabled" attributeType="Boolean" defaultValueString="YES" usesScalarValueType="YES"/>
+        <attribute name="petNotes" optional="YES" attributeType="Transformable" valueTransformerName="NSSecureUnarchiveFromDataTransformerName"/>
         <attribute name="scheduledTimes" optional="YES" attributeType="Transformable" valueTransformerName="NSSecureUnarchiveFromDataTransformerName"/>
         <attribute name="taskType" attributeType="String" defaultValueString="custom"/>
         <relationship name="completions" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="CDTaskCompletion" inverseName="careTask" inverseEntity="CDTaskCompletion"/>
-        <relationship name="pet" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="CDPet" inverseName="careTasks" inverseEntity="CDPet"/>
-        <relationship name="routine" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="CDRoutine" inverseName="tasks" inverseEntity="CDRoutine"/>
+        <relationship name="pets" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="CDPet" inverseName="careTasks" inverseEntity="CDPet"/>
     </entity>
     <entity name="CDTaskCompletion" representedClassName="CDTaskCompletion" syncable="YES" codeGenerationType="class">
         <attribute name="caregiverName" attributeType="String" defaultValueString="Me"/>
@@ -33,14 +36,18 @@
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="notes" optional="YES" attributeType="String"/>
         <relationship name="careTask" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="CDCareTask" inverseName="completions" inverseEntity="CDCareTask"/>
+        <relationship name="pet" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="CDPet" inverseName="taskCompletions" inverseEntity="CDPet"/>
     </entity>
-    <entity name="CDRoutine" representedClassName="CDRoutine" syncable="YES" codeGenerationType="class">
+    <entity name="CDHealthRecord" representedClassName="CDHealthRecord" syncable="YES" codeGenerationType="class">
         <attribute name="createdAt" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="dateAdministered" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
-        <attribute name="isEnabled" attributeType="Boolean" defaultValueString="YES" usesScalarValueType="YES"/>
         <attribute name="name" attributeType="String" defaultValueString=""/>
+        <attribute name="nextDueDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="notes" optional="YES" attributeType="String"/>
-        <relationship name="tasks" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="CDCareTask" inverseName="routine" inverseEntity="CDCareTask"/>
+        <attribute name="recordType" attributeType="String" defaultValueString="vaccination"/>
+        <attribute name="reminderEnabled" attributeType="Boolean" defaultValueString="YES" usesScalarValueType="YES"/>
+        <relationship name="pet" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="CDPet" inverseName="healthRecords" inverseEntity="CDPet"/>
     </entity>
     <entity name="CDJournalEntry" representedClassName="CDJournalEntry" syncable="YES" codeGenerationType="class">
         <attribute name="createdAt" attributeType="Date" usesScalarValueType="NO"/>

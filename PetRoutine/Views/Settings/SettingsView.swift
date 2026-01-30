@@ -13,7 +13,6 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             List {
-                // Pro status
                 if !storeKit.proUnlocked {
                     Section {
                         Button {
@@ -24,14 +23,11 @@ struct SettingsView: View {
                                     Text("PetRoutine Pro")
                                         .font(.headline)
                                         .foregroundStyle(.primary)
-
                                     Text("Unlimited pets, sharing, iCloud sync, exports, widgets")
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
                                 }
-
                                 Spacer()
-
                                 Text("Upgrade")
                                     .font(.subheadline)
                                     .fontWeight(.semibold)
@@ -57,7 +53,6 @@ struct SettingsView: View {
                     }
                 }
 
-                // Profile
                 Section("Your Profile") {
                     HStack {
                         Text("Name")
@@ -68,10 +63,8 @@ struct SettingsView: View {
                     }
                 }
 
-                // Sync
                 Section("Data") {
                     Toggle("iCloud Sync", isOn: $iCloudSyncEnabled)
-
                     if !storeKit.proUnlocked {
                         Text("iCloud sync requires PetRoutine Pro")
                             .font(.caption)
@@ -79,14 +72,12 @@ struct SettingsView: View {
                     }
                 }
 
-                // Household
                 Section("Household") {
                     Button {
                         showingHousehold = true
                     } label: {
                         Label("Manage Household", systemImage: "person.3")
                     }
-
                     if !storeKit.proUnlocked {
                         Text("Household sharing requires PetRoutine Pro")
                             .font(.caption)
@@ -94,7 +85,6 @@ struct SettingsView: View {
                     }
                 }
 
-                // Notifications
                 Section("Notifications") {
                     Button {
                         if let url = URL(string: UIApplication.openSettingsURLString) {
@@ -105,11 +95,9 @@ struct SettingsView: View {
                     }
                 }
 
-                // About
                 Section("About") {
                     LabeledContent("Version", value: "1.0.0")
                     LabeledContent("Build", value: "1")
-
                     Button {
                         Task { await storeKit.restorePurchases() }
                     } label: {
@@ -219,7 +207,6 @@ struct ProFeatureRow: View {
             Image(systemName: icon)
                 .frame(width: 24)
                 .foregroundStyle(.accent)
-
             Text(text)
                 .font(.body)
         }

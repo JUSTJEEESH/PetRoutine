@@ -2,14 +2,14 @@ import Foundation
 
 struct JournalEntry: Identifiable, Hashable {
     let id: UUID
-    var petID: UUID?
+    let petID: UUID
     var text: String
     var photoData: Data?
     let createdAt: Date
 
     init(
         id: UUID = UUID(),
-        petID: UUID? = nil,
+        petID: UUID,
         text: String = "",
         photoData: Data? = nil,
         createdAt: Date = Date()

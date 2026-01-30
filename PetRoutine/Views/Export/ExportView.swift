@@ -2,131 +2,94 @@ import SwiftUI
 
 struct ExportView: View {
     let pet: Pet
-
     @EnvironmentObject var taskVM: TaskViewModel
-    @EnvironmentObject var journalVM: JournalViewModel
+    @StateObject private var healthRecordVM = HealthRecordViewModel()
     @Environment(\.dismiss) private var dismiss
-
-    @State private var includeFeedingHistory = true
-    @State private var includeMedications = true
-    @State private var includeLogs = true
     @State private var pdfData: Data?
-    @State private var showingShareSheet = false
-    @State private var isGenerating = false
+    @State private var showingShare = false
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section("Report Contents") {
-                    Toggle("Feeding History", isOn: $includeFeedingHistory)
-                    Toggle("Medications", isOn: $includeMedications)
-                    Toggle("Journal Logs", isOn: $includeLogs)
+            List {
+                Section {
+                    Text("Generate a PDF report for \(pet.name) including care tasks, health records, and vet information.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
                 }
 
                 Section {
                     Button {
-                        generatePDF()
+                        generateReport()
                     } label: {
-                        HStack {
-                            Spacer()
-                            if isGenerating {
-                                ProgressView()
-                            } else {
-                                Label("Generate PDF", systemImage: "doc.fill")
-                            }
-                            Spacer()
-                        }
+                        Label("Generate Report", systemImage: "doc.fill")
                     }
-                    .disabled(isGenerating)
                 }
 
                 if pdfData != nil {
                     Section {
                         Button {
-                            showingShareSheet = true
+                            showingShare = true
                         } label: {
                             Label("Share Report", systemImage: "square.and.arrow.up")
                         }
                     }
                 }
             }
-            .navigationTitle("Export Report")
+            .listStyle(.insetGrouped)
+            .navigationTitle("Export")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }
                 }
             }
-            .sheet(isPresented: $showingShareSheet) {
-                if let pdfData {
-                    ShareSheet(items: [pdfData])
+            .sheet(isPresented: $showingShare) {
+                if let data = pdfData {
+                    ShareSheet(items: [data])
                 }
             }
             .onAppear {
-                taskVM.fetchTasks(for: pet.id)
-                journalVM.fetchEntries(for: pet.id)
+                healthRecordVM.fetchRecords(for: pet.id)
             }
         }
     }
 
-    private func generatePDF() {
-        isGenerating = true
-
+    private func generateReport() {
         var sections: [(title: String, rows: [(label: String, value: String)])] = []
 
-        if includeFeedingHistory {
-            let feedingTasks = taskVM.tasks.filter { $0.taskType == .feeding }
-            var rows: [(String, String)] = []
-            for task in feedingTasks {
-                let history = taskVM.completionHistory(for: task, limit: 50)
-                for completion in history {
-                    rows.append((
-                        completion.completedAt.mediumDateTimeString,
-                        "\(task.name) — \(completion.caregiverName)"
-                    ))
-                }
+        // Pet info
+        var petRows: [(String, String)] = [
+            ("Type", pet.petType.displayName),
+            ("Age", pet.ageCategory.displayName(for: pet.petType)),
+        ]
+        if let birthday = pet.birthday {
+            petRows.append(("Birthday", birthday.shortDateString))
+        }
+        sections.append((title: "Pet Information", rows: petRows))
+
+        // Tasks
+        let petTasks = taskVM.allTasks.filter { $0.petIDs.contains(pet.id) }
+        if !petTasks.isEmpty {
+            let taskRows = petTasks.map { task -> (String, String) in
+                let note = task.petNotes[pet.id.uuidString] ?? task.notes ?? ""
+                return (task.name, "\(task.taskType.displayName) · \(task.frequencyType.displayName)\(note.isEmpty ? "" : " · \(note)")")
             }
-            if !rows.isEmpty {
-                sections.append((title: "Feeding History", rows: rows))
-            }
+            sections.append((title: "Care Tasks", rows: taskRows))
         }
 
-        if includeMedications {
-            let medTasks = taskVM.tasks.filter { $0.taskType == .medication }
-            var rows: [(String, String)] = []
-            for task in medTasks {
-                let history = taskVM.completionHistory(for: task, limit: 50)
-                for completion in history {
-                    rows.append((
-                        completion.completedAt.mediumDateTimeString,
-                        "\(task.name) — \(completion.caregiverName)"
-                    ))
+        // Health records
+        if !healthRecordVM.records.isEmpty {
+            let healthRows = healthRecordVM.records.map { record -> (String, String) in
+                var value = "\(record.recordType.displayName) · \(record.dateAdministered.shortDateString)"
+                if let due = record.nextDueDate {
+                    value += " · Next: \(due.shortDateString)"
                 }
+                return (record.name, value)
             }
-            if !rows.isEmpty {
-                sections.append((title: "Medication History", rows: rows))
-            }
-        }
-
-        if includeLogs {
-            var rows: [(String, String)] = []
-            for entry in journalVM.entries {
-                rows.append((
-                    entry.createdAt.mediumDateTimeString,
-                    entry.text
-                ))
-            }
-            if !rows.isEmpty {
-                sections.append((title: "Journal Entries", rows: rows))
-            }
+            sections.append((title: "Health Records", rows: healthRows))
         }
 
         pdfData = ExportService.generatePDF(petName: pet.name, sections: sections)
-        isGenerating = false
-
-        if pdfData != nil {
-            showingShareSheet = true
-        }
     }
 }
 

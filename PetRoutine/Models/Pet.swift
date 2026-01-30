@@ -22,18 +22,17 @@ enum PetType: String, CaseIterable, Identifiable, Codable {
 }
 
 enum AgeCategory: String, CaseIterable, Identifiable, Codable {
-    case puppy
+    case baby
     case adult
     case senior
 
     var id: String { rawValue }
 
     func displayName(for petType: PetType) -> String {
-        switch (self, petType) {
-        case (.puppy, .dog): "Puppy"
-        case (.puppy, .cat): "Kitten"
-        case (.adult, _): "Adult"
-        case (.senior, _): "Senior"
+        switch self {
+        case .baby: petType == .dog ? "Puppy" : "Kitten"
+        case .adult: "Adult"
+        case .senior: "Senior"
         }
     }
 }
@@ -44,6 +43,7 @@ struct Pet: Identifiable, Hashable {
     var petType: PetType
     var ageCategory: AgeCategory
     var photoData: Data?
+    var birthday: Date?
     var sortOrder: Int16
     let createdAt: Date
 
@@ -53,6 +53,7 @@ struct Pet: Identifiable, Hashable {
         petType: PetType = .dog,
         ageCategory: AgeCategory = .adult,
         photoData: Data? = nil,
+        birthday: Date? = nil,
         sortOrder: Int16 = 0,
         createdAt: Date = Date()
     ) {
@@ -61,6 +62,7 @@ struct Pet: Identifiable, Hashable {
         self.petType = petType
         self.ageCategory = ageCategory
         self.photoData = photoData
+        self.birthday = birthday
         self.sortOrder = sortOrder
         self.createdAt = createdAt
     }

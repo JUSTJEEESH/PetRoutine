@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ContentView: View {
     @EnvironmentObject var petVM: PetViewModel
+    @EnvironmentObject var taskVM: TaskViewModel
     @State private var selectedTab: AppTab = .today
 
     enum AppTab: String, CaseIterable {
@@ -33,6 +34,7 @@ struct ContentView: View {
         .tint(.accentColor)
         .onAppear {
             petVM.fetchPets()
+            taskVM.fetchAllTasks()
         }
     }
 }
@@ -42,8 +44,8 @@ struct ContentView: View {
         .environmentObject(PetViewModel(persistence: .preview))
         .environmentObject(TaskViewModel(persistence: .preview))
         .environmentObject(JournalViewModel(persistence: .preview))
-        .environmentObject(RoutineViewModel(persistence: .preview))
         .environmentObject(HouseholdViewModel(persistence: .preview))
+        .environmentObject(HealthRecordViewModel(persistence: .preview))
         .environmentObject(StoreKitService.shared)
         .environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
 }

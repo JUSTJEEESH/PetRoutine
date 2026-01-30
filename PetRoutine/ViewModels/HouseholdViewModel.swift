@@ -10,7 +10,6 @@ final class HouseholdViewModel: ObservableObject {
 
     init(persistence: PersistenceController = .shared) {
         self.persistence = persistence
-        fetchHousehold()
     }
 
     func fetchHousehold() {
@@ -18,21 +17,9 @@ final class HouseholdViewModel: ObservableObject {
         let request = CDHousehold.fetchRequest()
         request.fetchLimit = 1
 
-        do {
-            let result = try context.fetch(request).first
-            household = result?.toHousehold()
-
-            if let cdHousehold = result,
-               let cdCaregivers = cdHousehold.caregivers as? Set<CDCaregiver> {
-                caregivers = cdCaregivers
-                    .map { $0.toCaregiver() }
-                    .filter { !$0.isExpired }
-                    .sorted { $0.createdAt < $1.createdAt }
-            } else {
-                caregivers = []
-            }
-        } catch {
-            print("Fetch household error: \(error.localizedDescription)")
+        if let cdHousehold = try? context.fetch(request).first {
+            household = cdHousehold.toHousehold()
+            caregivers = household?.caregivers ?? []
         }
     }
 
@@ -42,15 +29,6 @@ final class HouseholdViewModel: ObservableObject {
         cdHousehold.id = UUID()
         cdHousehold.name = name
         cdHousehold.createdAt = Date()
-
-        let owner = CDCaregiver(context: context)
-        owner.id = UUID()
-        owner.name = "Me"
-        owner.role = CaregiverRole.owner.rawValue
-        owner.isTemporary = false
-        owner.createdAt = Date()
-        owner.household = cdHousehold
-
         persistence.save()
         fetchHousehold()
     }
@@ -64,18 +42,19 @@ final class HouseholdViewModel: ObservableObject {
 
         let request = CDHousehold.fetchRequest()
         request.fetchLimit = 1
+        guard let cdHousehold = try? context.fetch(request).first else { return }
 
-        do {
-            if let cdHousehold = try context.fetch(request).first {
-                let cdCaregiver = CDCaregiver(context: context)
-                cdCaregiver.update(from: caregiver)
-                cdCaregiver.household = cdHousehold
-                persistence.save()
-                fetchHousehold()
-            }
-        } catch {
-            print("Add caregiver error: \(error.localizedDescription)")
-        }
+        let cdCaregiver = CDCaregiver(context: context)
+        cdCaregiver.id = caregiver.id
+        cdCaregiver.name = caregiver.name
+        cdCaregiver.role = caregiver.role.rawValue
+        cdCaregiver.isTemporary = caregiver.isTemporary
+        cdCaregiver.expiresAt = caregiver.expiresAt
+        cdCaregiver.createdAt = caregiver.createdAt
+        cdCaregiver.household = cdHousehold
+
+        persistence.save()
+        fetchHousehold()
     }
 
     func removeCaregiver(_ caregiver: Caregiver) {
@@ -83,36 +62,9 @@ final class HouseholdViewModel: ObservableObject {
         let request = CDCaregiver.fetchRequest()
         request.predicate = NSPredicate(format: "id == %@", caregiver.id as CVarArg)
 
-        do {
-            if let cdCaregiver = try context.fetch(request).first {
-                context.delete(cdCaregiver)
-                persistence.save()
-                fetchHousehold()
-            }
-        } catch {
-            print("Remove caregiver error: \(error.localizedDescription)")
-        }
-    }
-
-    func updateCaregiver(_ caregiver: Caregiver) {
-        let context = persistence.container.viewContext
-        let request = CDCaregiver.fetchRequest()
-        request.predicate = NSPredicate(format: "id == %@", caregiver.id as CVarArg)
-
-        do {
-            if let cdCaregiver = try context.fetch(request).first {
-                cdCaregiver.update(from: caregiver)
-                persistence.save()
-                fetchHousehold()
-            }
-        } catch {
-            print("Update caregiver error: \(error.localizedDescription)")
-        }
-    }
-
-    var activeCaregiverNames: [String] {
-        caregivers
-            .filter { !$0.isExpired }
-            .map(\.name)
+        guard let cdCaregiver = try? context.fetch(request).first else { return }
+        context.delete(cdCaregiver)
+        persistence.save()
+        fetchHousehold()
     }
 }

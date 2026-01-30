@@ -17,31 +17,38 @@ final class VetInfoViewModel: ObservableObject {
         request.predicate = NSPredicate(format: "pet.id == %@", petID as CVarArg)
         request.fetchLimit = 1
 
-        do {
-            vetInfo = try context.fetch(request).first?.toVetInfo()
-        } catch {
-            print("Fetch vet info error: \(error.localizedDescription)")
+        if let cdVetInfo = try? context.fetch(request).first {
+            vetInfo = cdVetInfo.toVetInfo()
+        } else {
+            vetInfo = nil
         }
     }
 
     func saveVetInfo(_ info: VetInfo) {
         let context = persistence.container.viewContext
-
         let request = CDVetInfo.fetchRequest()
-        request.predicate = NSPredicate(format: "pet.id == %@", (info.petID ?? UUID()) as CVarArg)
+        request.predicate = NSPredicate(format: "pet.id == %@", info.petID as CVarArg)
 
-        do {
-            let existing = try context.fetch(request).first
-            if let existing {
-                existing.update(from: info, in: context)
-            } else {
-                let cdInfo = CDVetInfo(context: context)
-                cdInfo.update(from: info, in: context)
+        let cdVetInfo: CDVetInfo
+        if let existing = try? context.fetch(request).first {
+            cdVetInfo = existing
+        } else {
+            cdVetInfo = CDVetInfo(context: context)
+            cdVetInfo.id = info.id
+
+            let petReq = CDPet.fetchRequest()
+            petReq.predicate = NSPredicate(format: "id == %@", info.petID as CVarArg)
+            if let cdPet = try? context.fetch(petReq).first {
+                cdVetInfo.pet = cdPet
             }
-            persistence.save()
-            vetInfo = info
-        } catch {
-            print("Save vet info error: \(error.localizedDescription)")
         }
+
+        cdVetInfo.name = info.name
+        cdVetInfo.phone = info.phone
+        cdVetInfo.address = info.address
+        cdVetInfo.notes = info.notes
+
+        persistence.save()
+        fetchVetInfo(for: info.petID)
     }
 }

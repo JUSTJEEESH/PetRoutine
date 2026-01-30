@@ -3,6 +3,7 @@ import Foundation
 enum TimelineEventType {
     case taskCompleted(taskName: String, taskType: TaskType, caregiverName: String)
     case journalEntry(text: String, hasPhoto: Bool)
+    case healthRecord(name: String, recordType: HealthRecordType)
 }
 
 struct TimelineEvent: Identifiable {
@@ -17,6 +18,8 @@ struct TimelineEvent: Identifiable {
             "\(taskName) — \(caregiver)"
         case .journalEntry(let text, _):
             text
+        case .healthRecord(let name, let recordType):
+            "\(recordType.displayName): \(name)"
         }
     }
 
@@ -26,6 +29,8 @@ struct TimelineEvent: Identifiable {
             taskType.icon
         case .journalEntry(_, let hasPhoto):
             hasPhoto ? "photo.fill" : "note.text"
+        case .healthRecord(_, let recordType):
+            recordType.icon
         }
     }
 }

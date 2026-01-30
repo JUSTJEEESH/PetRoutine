@@ -9,6 +9,8 @@ struct EditPetView: View {
     @State private var petType: PetType
     @State private var ageCategory: AgeCategory
     @State private var photoData: Data?
+    @State private var hasBirthday: Bool
+    @State private var birthday: Date
 
     init(pet: Pet) {
         self.pet = pet
@@ -16,6 +18,8 @@ struct EditPetView: View {
         _petType = State(initialValue: pet.petType)
         _ageCategory = State(initialValue: pet.ageCategory)
         _photoData = State(initialValue: pet.photoData)
+        _hasBirthday = State(initialValue: pet.birthday != nil)
+        _birthday = State(initialValue: pet.birthday ?? Date())
     }
 
     var body: some View {
@@ -52,6 +56,20 @@ struct EditPetView: View {
                     }
                     .pickerStyle(.segmented)
                 }
+
+                Section("Birthday") {
+                    Toggle("Set Birthday", isOn: $hasBirthday.animation())
+
+                    if hasBirthday {
+                        DatePicker(
+                            "Birthday",
+                            selection: $birthday,
+                            in: ...Date(),
+                            displayedComponents: .date
+                        )
+                        .datePickerStyle(.graphical)
+                    }
+                }
             }
             .navigationTitle("Edit Pet")
             .navigationBarTitleDisplayMode(.inline)
@@ -75,6 +93,7 @@ struct EditPetView: View {
         updated.petType = petType
         updated.ageCategory = ageCategory
         updated.photoData = photoData
+        updated.birthday = hasBirthday ? birthday : nil
         petVM.updatePet(updated)
         dismiss()
     }

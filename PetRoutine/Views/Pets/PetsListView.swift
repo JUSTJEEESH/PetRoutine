@@ -64,6 +64,8 @@ struct PetsListView: View {
     }
 }
 
+// MARK: - Pet List Row
+
 struct PetListRow: View {
     let pet: Pet
 
@@ -77,7 +79,7 @@ struct PetListRow: View {
                     .fontWeight(.medium)
 
                 HStack(spacing: 6) {
-                    Text(pet.petType.displayName)
+                    Label(pet.petType.displayName, systemImage: pet.petType.icon)
                         .font(.caption)
                         .foregroundStyle(.secondary)
 

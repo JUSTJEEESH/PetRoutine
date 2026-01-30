@@ -17,9 +17,9 @@ enum CaregiverRole: String, CaseIterable, Identifiable, Codable {
 
     var description: String {
         switch self {
-        case .owner: "Full control over pets, tasks, and household"
-        case .caregiver: "Complete tasks and add logs"
-        case .viewer: "View-only access"
+        case .owner: "Full control"
+        case .caregiver: "Complete tasks, add logs"
+        case .viewer: "Read-only access"
         }
     }
 }
@@ -50,22 +50,25 @@ struct Caregiver: Identifiable, Hashable {
 
     var isExpired: Bool {
         guard isTemporary, let expiresAt else { return false }
-        return Date() > expiresAt
+        return expiresAt < Date()
     }
 }
 
-struct Household: Identifiable, Hashable {
+struct Household: Identifiable {
     let id: UUID
     var name: String
+    var caregivers: [Caregiver]
     let createdAt: Date
 
     init(
         id: UUID = UUID(),
         name: String = "My Household",
+        caregivers: [Caregiver] = [],
         createdAt: Date = Date()
     ) {
         self.id = id
         self.name = name
+        self.caregivers = caregivers
         self.createdAt = createdAt
     }
 }

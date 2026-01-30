@@ -15,7 +15,7 @@
 		A10010 /* Pet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10010; };
 		A10011 /* CareTask.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10011; };
 		A10012 /* TaskCompletion.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10012; };
-		A10013 /* Routine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10013; };
+		A10018 /* HealthRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10018; };
 		A10014 /* JournalEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10014; };
 		A10015 /* VetInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10015; };
 		A10016 /* Household.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10016; };
@@ -28,7 +28,7 @@
 		A10031 /* Date+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10031; };
 		A10040 /* PetViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10040; };
 		A10041 /* TaskViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10041; };
-		A10042 /* RoutineViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10042; };
+		A10047 /* HealthRecordViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10047; };
 		A10043 /* JournalViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10043; };
 		A10044 /* HouseholdViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10044; };
 		A10045 /* VetInfoViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10045; };
@@ -45,7 +45,8 @@
 		A10059 /* LogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10059; };
 		A10060 /* AddJournalEntryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10060; };
 		A10061 /* TimelineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10061; };
-		A10062 /* RoutinesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10062; };
+		A10074 /* HealthPassportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10074; };
+		A10075 /* AddHealthRecordView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10075; };
 		A10063 /* VetInfoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10063; };
 		A10064 /* HouseholdView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10064; };
 		A10065 /* ExportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10065; };
@@ -97,7 +98,7 @@
 		B10010 /* Pet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Pet.swift; sourceTree = "<group>"; };
 		B10011 /* CareTask.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CareTask.swift; sourceTree = "<group>"; };
 		B10012 /* TaskCompletion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskCompletion.swift; sourceTree = "<group>"; };
-		B10013 /* Routine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Routine.swift; sourceTree = "<group>"; };
+		B10018 /* HealthRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthRecord.swift; sourceTree = "<group>"; };
 		B10014 /* JournalEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalEntry.swift; sourceTree = "<group>"; };
 		B10015 /* VetInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VetInfo.swift; sourceTree = "<group>"; };
 		B10016 /* Household.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Household.swift; sourceTree = "<group>"; };
@@ -110,7 +111,7 @@
 		B10031 /* Date+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Date+Extensions.swift"; sourceTree = "<group>"; };
 		B10040 /* PetViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PetViewModel.swift; sourceTree = "<group>"; };
 		B10041 /* TaskViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskViewModel.swift; sourceTree = "<group>"; };
-		B10042 /* RoutineViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutineViewModel.swift; sourceTree = "<group>"; };
+		B10047 /* HealthRecordViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthRecordViewModel.swift; sourceTree = "<group>"; };
 		B10043 /* JournalViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalViewModel.swift; sourceTree = "<group>"; };
 		B10044 /* HouseholdViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HouseholdViewModel.swift; sourceTree = "<group>"; };
 		B10045 /* VetInfoViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VetInfoViewModel.swift; sourceTree = "<group>"; };
@@ -127,7 +128,8 @@
 		B10059 /* LogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogView.swift; sourceTree = "<group>"; };
 		B10060 /* AddJournalEntryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddJournalEntryView.swift; sourceTree = "<group>"; };
 		B10061 /* TimelineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineView.swift; sourceTree = "<group>"; };
-		B10062 /* RoutinesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutinesView.swift; sourceTree = "<group>"; };
+		B10074 /* HealthPassportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthPassportView.swift; sourceTree = "<group>"; };
+		B10075 /* AddHealthRecordView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddHealthRecordView.swift; sourceTree = "<group>"; };
 		B10063 /* VetInfoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VetInfoView.swift; sourceTree = "<group>"; };
 		B10064 /* HouseholdView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HouseholdView.swift; sourceTree = "<group>"; };
 		B10065 /* ExportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportView.swift; sourceTree = "<group>"; };
@@ -223,7 +225,7 @@
 				B10010 /* Pet.swift */,
 				B10011 /* CareTask.swift */,
 				B10012 /* TaskCompletion.swift */,
-				B10013 /* Routine.swift */,
+				B10018 /* HealthRecord.swift */,
 				B10014 /* JournalEntry.swift */,
 				B10015 /* VetInfo.swift */,
 				B10016 /* Household.swift */,
@@ -245,7 +247,7 @@
 			children = (
 				B10040 /* PetViewModel.swift */,
 				B10041 /* TaskViewModel.swift */,
-				B10042 /* RoutineViewModel.swift */,
+				B10047 /* HealthRecordViewModel.swift */,
 				B10043 /* JournalViewModel.swift */,
 				B10044 /* HouseholdViewModel.swift */,
 				B10045 /* VetInfoViewModel.swift */,
@@ -261,7 +263,6 @@
 				G10004B /* Pets */,
 				G10004C /* Log */,
 				G10004D /* Tasks */,
-				G10004E /* Routines */,
 				G10004F /* VetInfo */,
 				G10004G /* Household */,
 				G10004H /* Export */,
@@ -287,6 +288,8 @@
 				B10053 /* AddPetView.swift */,
 				B10054 /* PetDetailView.swift */,
 				B10055 /* EditPetView.swift */,
+				B10074 /* HealthPassportView.swift */,
+				B10075 /* AddHealthRecordView.swift */,
 			);
 			path = Pets;
 			sourceTree = "<group>";
@@ -309,14 +312,6 @@
 				B10058 /* EditTaskView.swift */,
 			);
 			path = Tasks;
-			sourceTree = "<group>";
-		};
-		G10004E /* Routines */ = {
-			isa = PBXGroup;
-			children = (
-				B10062 /* RoutinesView.swift */,
-			);
-			path = Routines;
 			sourceTree = "<group>";
 		};
 		G10004F /* VetInfo */ = {
@@ -505,7 +500,7 @@
 				A10010 /* Pet.swift in Sources */,
 				A10011 /* CareTask.swift in Sources */,
 				A10012 /* TaskCompletion.swift in Sources */,
-				A10013 /* Routine.swift in Sources */,
+				A10018 /* HealthRecord.swift in Sources */,
 				A10014 /* JournalEntry.swift in Sources */,
 				A10015 /* VetInfo.swift in Sources */,
 				A10016 /* Household.swift in Sources */,
@@ -518,7 +513,7 @@
 				A10031 /* Date+Extensions.swift in Sources */,
 				A10040 /* PetViewModel.swift in Sources */,
 				A10041 /* TaskViewModel.swift in Sources */,
-				A10042 /* RoutineViewModel.swift in Sources */,
+				A10047 /* HealthRecordViewModel.swift in Sources */,
 				A10043 /* JournalViewModel.swift in Sources */,
 				A10044 /* HouseholdViewModel.swift in Sources */,
 				A10045 /* VetInfoViewModel.swift in Sources */,
@@ -535,7 +530,8 @@
 				A10059 /* LogView.swift in Sources */,
 				A10060 /* AddJournalEntryView.swift in Sources */,
 				A10061 /* TimelineView.swift in Sources */,
-				A10062 /* RoutinesView.swift in Sources */,
+				A10074 /* HealthPassportView.swift in Sources */,
+				A10075 /* AddHealthRecordView.swift in Sources */,
 				A10063 /* VetInfoView.swift in Sources */,
 				A10064 /* HouseholdView.swift in Sources */,
 				A10065 /* ExportView.swift in Sources */,

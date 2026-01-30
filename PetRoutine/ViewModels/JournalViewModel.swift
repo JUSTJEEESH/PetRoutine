@@ -11,27 +11,30 @@ final class JournalViewModel: ObservableObject {
         self.persistence = persistence
     }
 
-    func fetchEntries(for petID: UUID?) {
+    func fetchEntries(for petID: UUID) {
         let context = persistence.container.viewContext
         let request = CDJournalEntry.fetchRequest()
-
-        if let petID {
-            request.predicate = NSPredicate(format: "pet.id == %@", petID as CVarArg)
-        }
-
+        request.predicate = NSPredicate(format: "pet.id == %@", petID as CVarArg)
         request.sortDescriptors = [NSSortDescriptor(keyPath: \CDJournalEntry.createdAt, ascending: false)]
 
-        do {
-            entries = try context.fetch(request).map { $0.toJournalEntry() }
-        } catch {
-            print("Fetch journal entries error: \(error.localizedDescription)")
-        }
+        guard let results = try? context.fetch(request) else { return }
+        entries = results.map { $0.toJournalEntry() }
     }
 
     func addEntry(_ entry: JournalEntry) {
         let context = persistence.container.viewContext
         let cdEntry = CDJournalEntry(context: context)
-        cdEntry.update(from: entry, in: context)
+        cdEntry.id = entry.id
+        cdEntry.text = entry.text
+        cdEntry.photoData = entry.photoData
+        cdEntry.createdAt = entry.createdAt
+
+        let petReq = CDPet.fetchRequest()
+        petReq.predicate = NSPredicate(format: "id == %@", entry.petID as CVarArg)
+        if let cdPet = try? context.fetch(petReq).first {
+            cdEntry.pet = cdPet
+        }
+
         persistence.save()
         fetchEntries(for: entry.petID)
     }
@@ -41,14 +44,9 @@ final class JournalViewModel: ObservableObject {
         let request = CDJournalEntry.fetchRequest()
         request.predicate = NSPredicate(format: "id == %@", entry.id as CVarArg)
 
-        do {
-            if let cdEntry = try context.fetch(request).first {
-                context.delete(cdEntry)
-                persistence.save()
-                fetchEntries(for: entry.petID)
-            }
-        } catch {
-            print("Delete entry error: \(error.localizedDescription)")
-        }
+        guard let cdEntry = try? context.fetch(request).first else { return }
+        context.delete(cdEntry)
+        persistence.save()
+        fetchEntries(for: entry.petID)
     }
 }

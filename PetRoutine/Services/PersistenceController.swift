@@ -16,6 +16,15 @@ final class PersistenceController: @unchecked Sendable {
         pet.createdAt = Date()
         pet.sortOrder = 0
 
+        let pet2 = CDPet(context: context)
+        pet2.id = UUID()
+        pet2.name = "Whiskers"
+        pet2.petType = "cat"
+        pet2.ageCategory = "baby"
+        pet2.createdAt = Date()
+        pet2.sortOrder = 1
+
+        // Multi-pet task: feeding applies to both pets
         let task1 = CDCareTask(context: context)
         task1.id = UUID()
         task1.name = "Morning Feed"
@@ -24,8 +33,10 @@ final class PersistenceController: @unchecked Sendable {
         task1.isEnabled = true
         task1.notifyEnabled = true
         task1.createdAt = Date()
-        task1.pet = pet
+        task1.addToPets(pet)
+        task1.addToPets(pet2)
 
+        // Single-pet task: walk for dog only
         let task2 = CDCareTask(context: context)
         task2.id = UUID()
         task2.name = "Walk"
@@ -34,15 +45,7 @@ final class PersistenceController: @unchecked Sendable {
         task2.isEnabled = true
         task2.notifyEnabled = true
         task2.createdAt = Date()
-        task2.pet = pet
-
-        let pet2 = CDPet(context: context)
-        pet2.id = UUID()
-        pet2.name = "Whiskers"
-        pet2.petType = "cat"
-        pet2.ageCategory = "senior"
-        pet2.createdAt = Date()
-        pet2.sortOrder = 1
+        task2.addToPets(pet)
 
         do {
             try context.save()

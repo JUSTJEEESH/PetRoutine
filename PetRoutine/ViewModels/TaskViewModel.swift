@@ -1,10 +1,17 @@
 import CoreData
 import SwiftUI
 
+struct TimeBlock: Identifiable {
+    let id: String
+    let time: Date?
+    let label: String
+    var tasks: [CareTask]
+}
+
 @MainActor
 final class TaskViewModel: ObservableObject {
-    @Published var tasks: [CareTask] = []
-    @Published var todayCompletions: [UUID: [TaskCompletion]] = [:]
+    @Published var allTasks: [CareTask] = []
+    @Published var completedPairs: [UUID: Set<UUID>] = [:]
 
     private let persistence: PersistenceController
 
@@ -12,63 +19,177 @@ final class TaskViewModel: ObservableObject {
         self.persistence = persistence
     }
 
-    func fetchTasks(for petID: UUID) {
+    var todayTasks: [CareTask] {
+        allTasks.filter { $0.shouldShowToday() }
+    }
+
+    func timeBlocks(filterPetID: UUID? = nil) -> [TimeBlock] {
+        var tasks = todayTasks
+        if let petID = filterPetID {
+            tasks = tasks.filter { $0.petIDs.contains(petID) }
+        }
+
+        var groups: [String: (time: Date?, tasks: [CareTask])] = [:]
+
+        for task in tasks {
+            let key: String
+            let time: Date?
+            if let earliest = task.earliestTime {
+                let cal = Calendar.current
+                let h = cal.component(.hour, from: earliest)
+                let m = cal.component(.minute, from: earliest)
+                key = String(format: "%02d:%02d", h, m)
+                time = earliest
+            } else {
+                key = "99:99"
+                time = nil
+            }
+
+            if groups[key] != nil {
+                groups[key]!.tasks.append(task)
+            } else {
+                groups[key] = (time: time, tasks: [task])
+            }
+        }
+
+        return groups
+            .sorted(by: { $0.key < $1.key })
+            .map { entry in
+                let label: String
+                if let t = entry.value.time {
+                    label = t.timeString
+                } else {
+                    label = "Anytime"
+                }
+                return TimeBlock(
+                    id: entry.key,
+                    time: entry.value.time,
+                    label: label,
+                    tasks: entry.value.tasks.sorted(by: { $0.name < $1.name })
+                )
+            }
+    }
+
+    func isCompleted(taskID: UUID, petID: UUID) -> Bool {
+        completedPairs[taskID]?.contains(petID) == true
+    }
+
+    func allPetsCompleted(task: CareTask) -> Bool {
+        task.petIDs.allSatisfy { isCompleted(taskID: task.id, petID: $0) }
+    }
+
+    func completedPetCount(task: CareTask) -> Int {
+        task.petIDs.filter { isCompleted(taskID: task.id, petID: $0) }.count
+    }
+
+    // MARK: - Fetch
+
+    func fetchAllTasks() {
         let context = persistence.container.viewContext
         let request = CDCareTask.fetchRequest()
-        request.predicate = NSPredicate(format: "pet.id == %@", petID as CVarArg)
         request.sortDescriptors = [NSSortDescriptor(keyPath: \CDCareTask.createdAt, ascending: true)]
 
-        do {
-            let results = try context.fetch(request)
-            tasks = results.map { $0.toCareTask() }
-            fetchTodayCompletions()
-        } catch {
-            print("Fetch tasks error: \(error.localizedDescription)")
-        }
+        guard let results = try? context.fetch(request) else { return }
+        allTasks = results.map { $0.toCareTask() }
+        fetchTodayCompletions()
     }
 
     func fetchTodayCompletions() {
         let context = persistence.container.viewContext
-        let startOfDay = Date().startOfDay
-        let endOfDay = Date().endOfDay
+        let request = CDTaskCompletion.fetchRequest()
+        let start = Date().startOfDay
+        let end = Date().endOfDay
+        request.predicate = NSPredicate(format: "completedAt >= %@ AND completedAt <= %@", start as NSDate, end as NSDate)
 
-        var completionsMap: [UUID: [TaskCompletion]] = [:]
-
-        for task in tasks {
-            let request = CDTaskCompletion.fetchRequest()
-            request.predicate = NSPredicate(
-                format: "careTask.id == %@ AND completedAt >= %@ AND completedAt <= %@",
-                task.id as CVarArg,
-                startOfDay as CVarArg,
-                endOfDay as CVarArg
-            )
-            request.sortDescriptors = [NSSortDescriptor(keyPath: \CDTaskCompletion.completedAt, ascending: false)]
-
-            do {
-                let results = try context.fetch(request)
-                completionsMap[task.id] = results.map { $0.toTaskCompletion() }
-            } catch {
-                print("Fetch completions error: \(error.localizedDescription)")
-            }
+        guard let results = try? context.fetch(request) else { return }
+        var pairs: [UUID: Set<UUID>] = [:]
+        for completion in results {
+            guard let taskID = completion.careTask?.id, let petID = completion.pet?.id else { continue }
+            pairs[taskID, default: []].insert(petID)
         }
-
-        todayCompletions = completionsMap
+        completedPairs = pairs
     }
+
+    // MARK: - Complete / Undo
+
+    func completeTask(_ taskID: UUID, forPet petID: UUID) {
+        let context = persistence.container.viewContext
+
+        let taskReq = CDCareTask.fetchRequest()
+        taskReq.predicate = NSPredicate(format: "id == %@", taskID as CVarArg)
+        guard let cdTask = try? context.fetch(taskReq).first else { return }
+
+        let petReq = CDPet.fetchRequest()
+        petReq.predicate = NSPredicate(format: "id == %@", petID as CVarArg)
+        guard let cdPet = try? context.fetch(petReq).first else { return }
+
+        let completion = CDTaskCompletion(context: context)
+        completion.id = UUID()
+        completion.completedAt = Date()
+        completion.caregiverName = UserDefaults.standard.string(forKey: "caregiverName") ?? "Me"
+        completion.careTask = cdTask
+        completion.pet = cdPet
+
+        persistence.save()
+        completedPairs[taskID, default: []].insert(petID)
+    }
+
+    func completeTaskForAllPets(_ task: CareTask) {
+        for petID in task.petIDs where !isCompleted(taskID: task.id, petID: petID) {
+            completeTask(task.id, forPet: petID)
+        }
+    }
+
+    func undoCompletion(taskID: UUID, petID: UUID) {
+        let context = persistence.container.viewContext
+        let request = CDTaskCompletion.fetchRequest()
+        let start = Date().startOfDay
+        let end = Date().endOfDay
+        request.predicate = NSPredicate(
+            format: "careTask.id == %@ AND pet.id == %@ AND completedAt >= %@ AND completedAt <= %@",
+            taskID as CVarArg, petID as CVarArg, start as NSDate, end as NSDate
+        )
+
+        if let results = try? context.fetch(request) {
+            for item in results { context.delete(item) }
+        }
+        persistence.save()
+        completedPairs[taskID]?.remove(petID)
+    }
+
+    // MARK: - CRUD
 
     func addTask(_ task: CareTask) {
         let context = persistence.container.viewContext
         let cdTask = CDCareTask(context: context)
-        cdTask.update(from: task, in: context)
-        persistence.save()
+        cdTask.id = task.id
+        cdTask.name = task.name
+        cdTask.taskType = task.taskType.rawValue
+        cdTask.frequencyType = task.frequencyType.rawValue
+        cdTask.frequencyValue = task.frequencyValue
+        cdTask.scheduledTimes = task.scheduledTimes as NSArray
+        cdTask.isEnabled = task.isEnabled
+        cdTask.notifyEnabled = task.notifyEnabled
+        cdTask.notes = task.notes
+        cdTask.petNotes = task.petNotes as NSDictionary
+        cdTask.createdAt = task.createdAt
 
-        if let petID = task.petID {
-            fetchTasks(for: petID)
-
-            if task.notifyEnabled {
-                let petName = petNameFor(petID: petID)
-                NotificationService.shared.scheduleTaskNotification(for: task, petName: petName)
+        // Link to pets (many-to-many)
+        for petID in task.petIDs {
+            let petReq = CDPet.fetchRequest()
+            petReq.predicate = NSPredicate(format: "id == %@", petID as CVarArg)
+            if let cdPet = try? context.fetch(petReq).first {
+                cdTask.addToPets(cdPet)
             }
         }
+
+        persistence.save()
+
+        if task.notifyEnabled {
+            NotificationService.shared.scheduleTaskNotifications(for: task)
+        }
+
+        fetchAllTasks()
     }
 
     func updateTask(_ task: CareTask) {
@@ -76,25 +197,37 @@ final class TaskViewModel: ObservableObject {
         let request = CDCareTask.fetchRequest()
         request.predicate = NSPredicate(format: "id == %@", task.id as CVarArg)
 
-        do {
-            if let cdTask = try context.fetch(request).first {
-                cdTask.update(from: task, in: context)
-                persistence.save()
+        guard let cdTask = try? context.fetch(request).first else { return }
+        cdTask.name = task.name
+        cdTask.taskType = task.taskType.rawValue
+        cdTask.frequencyType = task.frequencyType.rawValue
+        cdTask.frequencyValue = task.frequencyValue
+        cdTask.scheduledTimes = task.scheduledTimes as NSArray
+        cdTask.isEnabled = task.isEnabled
+        cdTask.notifyEnabled = task.notifyEnabled
+        cdTask.notes = task.notes
+        cdTask.petNotes = task.petNotes as NSDictionary
 
-                if let petID = task.petID {
-                    fetchTasks(for: petID)
-
-                    let petName = petNameFor(petID: petID)
-                    if task.notifyEnabled && task.isEnabled {
-                        NotificationService.shared.scheduleTaskNotification(for: task, petName: petName)
-                    } else {
-                        NotificationService.shared.removeNotifications(for: task.id)
-                    }
-                }
-            }
-        } catch {
-            print("Update task error: \(error.localizedDescription)")
+        // Update pet associations
+        if let existingPets = cdTask.pets as? Set<CDPet> {
+            for p in existingPets { cdTask.removeFromPets(p) }
         }
+        for petID in task.petIDs {
+            let petReq = CDPet.fetchRequest()
+            petReq.predicate = NSPredicate(format: "id == %@", petID as CVarArg)
+            if let cdPet = try? context.fetch(petReq).first {
+                cdTask.addToPets(cdPet)
+            }
+        }
+
+        persistence.save()
+
+        NotificationService.shared.removeNotifications(for: task.id)
+        if task.notifyEnabled && task.isEnabled {
+            NotificationService.shared.scheduleTaskNotifications(for: task)
+        }
+
+        fetchAllTasks()
     }
 
     func deleteTask(_ task: CareTask) {
@@ -102,113 +235,52 @@ final class TaskViewModel: ObservableObject {
         let request = CDCareTask.fetchRequest()
         request.predicate = NSPredicate(format: "id == %@", task.id as CVarArg)
 
-        do {
-            if let cdTask = try context.fetch(request).first {
-                context.delete(cdTask)
-                persistence.save()
-                NotificationService.shared.removeNotifications(for: task.id)
-                if let petID = task.petID {
-                    fetchTasks(for: petID)
-                }
-            }
-        } catch {
-            print("Delete task error: \(error.localizedDescription)")
+        guard let cdTask = try? context.fetch(request).first else { return }
+        NotificationService.shared.removeNotifications(for: task.id)
+        context.delete(cdTask)
+        persistence.save()
+        fetchAllTasks()
+    }
+
+    // MARK: - Stats
+
+    func totalTodayTaskPetPairs(filterPetID: UUID? = nil) -> Int {
+        var tasks = todayTasks
+        if let petID = filterPetID {
+            tasks = tasks.filter { $0.petIDs.contains(petID) }
+        }
+        if let petID = filterPetID {
+            return tasks.count
+        }
+        return tasks.reduce(0) { $0 + $1.petIDs.count }
+    }
+
+    func completedTodayTaskPetPairs(filterPetID: UUID? = nil) -> Int {
+        var tasks = todayTasks
+        if let petID = filterPetID {
+            tasks = tasks.filter { $0.petIDs.contains(petID) }
+            return tasks.filter { isCompleted(taskID: $0.id, petID: petID) }.count
+        }
+        return tasks.reduce(0) { sum, task in
+            sum + task.petIDs.filter { isCompleted(taskID: task.id, petID: $0) }.count
         }
     }
 
-    func completeTask(_ task: CareTask, caregiverName: String = "Me") {
+    // MARK: - History
+
+    func completionHistory(for task: CareTask, days: Int = 7) -> [TaskCompletion] {
         let context = persistence.container.viewContext
-        let request = CDCareTask.fetchRequest()
-        request.predicate = NSPredicate(format: "id == %@", task.id as CVarArg)
-
-        do {
-            if let cdTask = try context.fetch(request).first {
-                let completion = CDTaskCompletion(context: context)
-                completion.id = UUID()
-                completion.completedAt = Date()
-                completion.caregiverName = caregiverName
-                completion.careTask = cdTask
-                persistence.save()
-                fetchTodayCompletions()
-            }
-        } catch {
-            print("Complete task error: \(error.localizedDescription)")
-        }
-    }
-
-    func undoCompletion(for task: CareTask) {
-        let context = persistence.container.viewContext
-        let startOfDay = Date().startOfDay
-        let endOfDay = Date().endOfDay
-
         let request = CDTaskCompletion.fetchRequest()
+        let since = Calendar.current.date(byAdding: .day, value: -days, to: Date()) ?? Date()
         request.predicate = NSPredicate(
-            format: "careTask.id == %@ AND completedAt >= %@ AND completedAt <= %@",
-            task.id as CVarArg,
-            startOfDay as CVarArg,
-            endOfDay as CVarArg
+            format: "careTask.id == %@ AND completedAt >= %@",
+            task.id as CVarArg, since as NSDate
         )
-        request.sortDescriptors = [NSSortDescriptor(keyPath: \CDTaskCompletion.completedAt, ascending: false)]
-        request.fetchLimit = 1
+        request.sortDescriptors = [
+            NSSortDescriptor(keyPath: \CDTaskCompletion.completedAt, ascending: false)
+        ]
 
-        do {
-            if let latest = try context.fetch(request).first {
-                context.delete(latest)
-                persistence.save()
-                fetchTodayCompletions()
-            }
-        } catch {
-            print("Undo completion error: \(error.localizedDescription)")
-        }
-    }
-
-    func isCompletedToday(_ task: CareTask) -> Bool {
-        guard let completions = todayCompletions[task.id] else { return false }
-        return !completions.isEmpty
-    }
-
-    func todayTasksSummary(for petID: UUID) -> (completed: Int, total: Int) {
-        let enabledTasks = tasks.filter { $0.isEnabled && shouldShowToday($0) }
-        let completedCount = enabledTasks.filter { isCompletedToday($0) }.count
-        return (completedCount, enabledTasks.count)
-    }
-
-    func shouldShowToday(_ task: CareTask) -> Bool {
-        guard task.isEnabled else { return false }
-
-        switch task.frequencyType {
-        case .daily:
-            return true
-        case .weekly:
-            if let dayString = task.frequencyValue,
-               let weekday = Int(dayString) {
-                return Date().dayOfWeek == weekday
-            }
-            return true
-        case .custom:
-            return true
-        }
-    }
-
-    func completionHistory(for task: CareTask, limit: Int = 30) -> [TaskCompletion] {
-        let context = persistence.container.viewContext
-        let request = CDTaskCompletion.fetchRequest()
-        request.predicate = NSPredicate(format: "careTask.id == %@", task.id as CVarArg)
-        request.sortDescriptors = [NSSortDescriptor(keyPath: \CDTaskCompletion.completedAt, ascending: false)]
-        request.fetchLimit = limit
-
-        do {
-            return try context.fetch(request).map { $0.toTaskCompletion() }
-        } catch {
-            print("Fetch history error: \(error.localizedDescription)")
-            return []
-        }
-    }
-
-    private func petNameFor(petID: UUID) -> String {
-        let context = persistence.container.viewContext
-        let request = CDPet.fetchRequest()
-        request.predicate = NSPredicate(format: "id == %@", petID as CVarArg)
-        return (try? context.fetch(request).first?.name) ?? "Pet"
+        guard let results = try? context.fetch(request) else { return [] }
+        return results.map { $0.toTaskCompletion() }
     }
 }

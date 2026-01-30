@@ -3,9 +3,29 @@ import SwiftUI
 struct TodayView: View {
     @EnvironmentObject var petVM: PetViewModel
     @EnvironmentObject var taskVM: TaskViewModel
+    @EnvironmentObject var healthRecordVM: HealthRecordViewModel
+
     @State private var showingAddPet = false
     @State private var showingAddTask = false
     @State private var showingSettings = false
+
+    // MARK: - Helpers
+
+    private var filterPetID: UUID? {
+        petVM.showAllPets ? nil : petVM.selectedPet?.id
+    }
+
+    private var addTaskPetIDs: [UUID] {
+        if petVM.showAllPets { return [] }
+        if let pet = petVM.selectedPet { return [pet.id] }
+        return []
+    }
+
+    private var dateString: String {
+        Date().formatted(.dateTime.weekday(.wide).month(.wide).day())
+    }
+
+    // MARK: - Body
 
     var body: some View {
         NavigationStack {
@@ -24,20 +44,11 @@ struct TodayView: View {
             }
             .navigationTitle("Today")
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
+                ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         showingSettings = true
                     } label: {
                         Image(systemName: "gearshape")
-                    }
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    if !petVM.pets.isEmpty {
-                        Button {
-                            showingAddTask = true
-                        } label: {
-                            Image(systemName: "plus")
-                        }
                     }
                 }
             }
@@ -45,9 +56,7 @@ struct TodayView: View {
                 AddPetView()
             }
             .sheet(isPresented: $showingAddTask) {
-                if let pet = petVM.selectedPet {
-                    AddTaskView(petID: pet.id)
-                }
+                AddTaskView(initialPetIDs: addTaskPetIDs)
             }
             .sheet(isPresented: $showingSettings) {
                 SettingsView()
@@ -55,118 +64,270 @@ struct TodayView: View {
         }
     }
 
+    // MARK: - Today Content
+
     private var todayContent: some View {
-        ScrollView {
-            VStack(spacing: 20) {
-                // Pet selector
-                if petVM.pets.count > 1 {
-                    PetSelectorView()
-                        .padding(.top, 8)
-                }
+        ZStack(alignment: .bottomTrailing) {
+            ScrollView {
+                VStack(spacing: 20) {
+                    dateHeader
+                        .padding(.top, 4)
 
-                // Summary
-                if let pet = petVM.selectedPet {
-                    todaySummary(for: pet)
-                }
+                    petSelectorRow
 
-                // Task list
-                if let pet = petVM.selectedPet {
-                    todayTasks(for: pet)
+                    progressSummary
+
+                    healthAlertBanner
+
+                    timeBlocksList
+                }
+                .padding(.bottom, 88)
+            }
+            .refreshable {
+                await MainActor.run {
+                    taskVM.fetchAllTasks()
+                    healthRecordVM.fetchAllRecords()
                 }
             }
-            .padding(.bottom, 20)
-        }
-        .refreshable {
-            if let pet = petVM.selectedPet {
-                taskVM.fetchTasks(for: pet.id)
+            .onAppear {
+                taskVM.fetchAllTasks()
+                healthRecordVM.fetchAllRecords()
             }
-        }
-        .onChange(of: petVM.selectedPet?.id) { _, newValue in
-            if let petID = newValue {
-                taskVM.fetchTasks(for: petID)
-            }
-        }
-        .onAppear {
-            if let pet = petVM.selectedPet {
-                taskVM.fetchTasks(for: pet.id)
-            }
+
+            floatingAddButton
         }
     }
 
-    private func todaySummary(for pet: Pet) -> some View {
-        let summary = taskVM.todayTasksSummary(for: pet.id)
-        return HStack {
-            PetAvatarView(pet: pet, size: 40)
+    // MARK: - Date Header
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text(pet.name)
-                    .font(.headline)
-                if summary.total > 0 {
-                    Text("\(summary.completed)/\(summary.total) tasks done")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                } else {
-                    Text("No tasks scheduled")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-            }
-
+    private var dateHeader: some View {
+        HStack {
+            Text(dateString)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
             Spacer()
-
-            if summary.total > 0 {
-                CircularProgressView(
-                    progress: summary.total > 0 ? Double(summary.completed) / Double(summary.total) : 0
-                )
-                .frame(width: 36, height: 36)
-            }
         }
         .padding(.horizontal)
     }
 
-    private func todayTasks(for pet: Pet) -> some View {
-        let todayTasks = taskVM.tasks.filter { taskVM.shouldShowToday($0) }
+    // MARK: - Pet Selector
 
-        return VStack(spacing: 0) {
-            if todayTasks.isEmpty {
+    private var petSelectorRow: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 12) {
+                allPetsBubble
+
+                ForEach(petVM.pets) { pet in
+                    petBubble(pet)
+                }
+            }
+            .padding(.horizontal)
+        }
+    }
+
+    private var allPetsBubble: some View {
+        Button {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                petVM.showAllPets = true
+            }
+        } label: {
+            VStack(spacing: 4) {
+                ZStack {
+                    Circle()
+                        .fill(petVM.showAllPets ? Color.accentColor : Color(.systemGray5))
+                        .frame(width: 52, height: 52)
+
+                    Text("All")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(petVM.showAllPets ? .white : .secondary)
+                }
+                .overlay(
+                    Circle()
+                        .stroke(petVM.showAllPets ? Color.accentColor : Color.clear, lineWidth: 3)
+                        .frame(width: 58, height: 58)
+                )
+
+                Text("All")
+                    .font(.caption)
+                    .fontWeight(petVM.showAllPets ? .semibold : .regular)
+                    .foregroundStyle(petVM.showAllPets ? .primary : .secondary)
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Show all pets")
+    }
+
+    private func petBubble(_ pet: Pet) -> some View {
+        let isSelected = !petVM.showAllPets && petVM.selectedPet?.id == pet.id
+
+        return Button {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                petVM.showAllPets = false
+                petVM.selectedPet = pet
+            }
+        } label: {
+            VStack(spacing: 4) {
+                PetAvatarView(pet: pet, size: 52)
+                    .overlay(
+                        Circle()
+                            .stroke(
+                                isSelected ? Color.accentColor : Color.clear,
+                                lineWidth: 3
+                            )
+                            .frame(width: 58, height: 58)
+                    )
+
+                Text(pet.name)
+                    .font(.caption)
+                    .fontWeight(isSelected ? .semibold : .regular)
+                    .foregroundStyle(isSelected ? .primary : .secondary)
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Select \(pet.name)")
+    }
+
+    // MARK: - Progress Summary
+
+    private var progressSummary: some View {
+        let total = taskVM.totalTodayTaskPetPairs(filterPetID: filterPetID)
+        let completed = taskVM.completedTodayTaskPetPairs(filterPetID: filterPetID)
+        let progress: Double = total > 0 ? Double(completed) / Double(total) : 0
+
+        return VStack(spacing: 8) {
+            HStack {
+                Text("\(completed) of \(total) done")
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+
+                Spacer()
+
+                if total > 0 {
+                    Text("\(Int(progress * 100))%")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            ProgressView(value: progress)
+                .tint(progress >= 1.0 ? .green : .accentColor)
+        }
+        .padding(.horizontal)
+    }
+
+    // MARK: - Health Alert Banner
+
+    @ViewBuilder
+    private var healthAlertBanner: some View {
+        let overdueCount = healthRecordVM.overdueRecords.count
+        let dueSoonCount = healthRecordVM.dueSoonRecords.count
+        let totalAlerts = overdueCount + dueSoonCount
+
+        if totalAlerts > 0 {
+            HStack(spacing: 8) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.orange)
+
+                Text("\(totalAlerts) health record\(totalAlerts == 1 ? "" : "s") due")
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(12)
+            .background(Color.orange.opacity(0.1))
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .padding(.horizontal)
+        }
+    }
+
+    // MARK: - Time Blocks
+
+    private var timeBlocksList: some View {
+        let blocks = taskVM.timeBlocks(filterPetID: filterPetID)
+
+        return Group {
+            if blocks.isEmpty {
                 EmptyStateView(
                     icon: "checkmark.circle",
                     title: "No Tasks Today",
-                    message: "Add a task to start tracking \(pet.name)'s care.",
+                    message: "Tap + to add a care task for your pets.",
                     buttonTitle: "Add Task",
                     action: { showingAddTask = true }
                 )
                 .frame(minHeight: 200)
             } else {
-                let pending = todayTasks.filter { !taskVM.isCompletedToday($0) }
-                let completed = todayTasks.filter { taskVM.isCompletedToday($0) }
-
-                if !pending.isEmpty {
-                    taskSection(title: "To Do", tasks: pending)
-                }
-
-                if !completed.isEmpty {
-                    taskSection(title: "Done", tasks: completed)
+                LazyVStack(spacing: 16) {
+                    ForEach(blocks) { block in
+                        timeBlockSection(block)
+                    }
                 }
             }
         }
     }
 
-    private func taskSection(title: String, tasks: [CareTask]) -> some View {
+    private func timeBlockSection(_ block: TimeBlock) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(title)
-                .font(.subheadline)
-                .fontWeight(.semibold)
-                .foregroundStyle(.secondary)
-                .padding(.horizontal)
+            HStack(spacing: 6) {
+                Image(systemName: iconForTimeBlock(block))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
 
-            ForEach(tasks) { task in
+                Text(block.label)
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal)
+
+            ForEach(block.tasks) { task in
                 TaskRowView(task: task)
             }
         }
-        .padding(.top, 8)
+    }
+
+    private func iconForTimeBlock(_ block: TimeBlock) -> String {
+        guard let time = block.time else {
+            return "clock.fill"
+        }
+        let hour = Calendar.current.component(.hour, from: time)
+        if hour < 12 {
+            return "sunrise.fill"
+        } else if hour < 17 {
+            return "sun.max.fill"
+        } else {
+            return "sunset.fill"
+        }
+    }
+
+    // MARK: - Floating Add Button
+
+    private var floatingAddButton: some View {
+        Button {
+            showingAddTask = true
+        } label: {
+            Image(systemName: "plus")
+                .font(.title2)
+                .fontWeight(.semibold)
+                .foregroundStyle(.white)
+                .frame(width: 56, height: 56)
+                .background(Color.accentColor)
+                .clipShape(Circle())
+                .shadow(color: .accentColor.opacity(0.3), radius: 8, y: 4)
+        }
+        .padding(.trailing, 20)
+        .padding(.bottom, 20)
+        .accessibilityLabel("Add new task")
     }
 }
+
+// MARK: - Circular Progress (used elsewhere)
 
 struct CircularProgressView: View {
     let progress: Double
@@ -185,7 +346,7 @@ struct CircularProgressView: View {
                 Image(systemName: "checkmark")
                     .font(.caption2)
                     .fontWeight(.bold)
-                    .foregroundStyle(.accent)
+                    .foregroundStyle(Color.accentColor)
             }
         }
     }
