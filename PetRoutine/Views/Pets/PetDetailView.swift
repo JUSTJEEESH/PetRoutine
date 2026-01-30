@@ -67,7 +67,7 @@ struct PetDetailView: View {
             ExportView(pet: pet)
         }
         .sheet(isPresented: $showingTimeline) {
-            PetTimelineView(petID: pet.id, petName: pet.name)
+            PetTimelineView(pet: pet)
         }
         .sheet(item: $selectedRecord) { record in
             AddHealthRecordView(petID: pet.id, existingRecord: record)
